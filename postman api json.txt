@@ -1,0 +1,73 @@
+post http://localhost:3000/api/auth/register
+
+{
+  "username": "asriva",
+  "full_name": "Ashish Srivastav",
+  "email": "ashish@gmail.com",
+  "phone": "9876543210",
+  "password": "123456"
+}
+
+post http://localhost:3000/api/auth/login
+
+{
+  "username": "asriva",
+  "password": "123456"
+}
+
+post  http://localhost:3000/api/auth/verify-otp
+
+{
+  "userId": 1,
+  "otp": "183143"
+}
+
+post  http://localhost:3000/api/auth/logout
+
+get  http://localhost:3000/api/auth/menu    // for menu items
+
+
+post  http://localhost:3000/api/instruments
+
+{
+  "instrumentName": "Microscope",
+  "labId": 1,
+  "model": "XYZ-100",
+  "calibrationDate": "2026-03-20",
+  "status": "active"
+}
+
+
+post http://localhost:3000/api/central-lab
+
+{
+  "labCode": "LAB001",
+  "labName": "Asriva Lab",
+  "location": "Ahmedabad",
+  "labType": "Chemical"
+}
+
+post http://localhost:3000/api/project/
+
+{
+  "projectName": "AI System",
+  "objective": "Build AI system",
+  "startDate": "2026-03-20",
+  "endDate": "2026-06-20",
+  "status": "completed"
+}
+
+post http://localhost:3000/api/raw-material/
+
+{
+  "materialCode": "RM001",
+  "materialName": "Steel",
+  "category": "Metal",
+  "supplier": "Asriva Supplier",
+  "storage": "Warehouse A"
+}
+
+
+
+
+
