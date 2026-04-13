@@ -1,5 +1,6 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
+require("dotenv").config();
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -20,4 +21,4 @@ const pool = mysql.createPool({
   }
 })();
 
-module.exports = pool;   //
+module.exports = pool; //
