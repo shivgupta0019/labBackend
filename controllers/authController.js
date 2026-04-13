@@ -101,72 +101,111 @@ exports.resendOtp = async (req, res) => {
 
 
 ////////////////////////// FORGOT PASSWORD
+// exports.forgotPassword = async (req, res) => {
+//   try {
+//     const { email } = req.body;
+
+//     const [rows] = await pool.query(
+//       "SELECT * FROM users WHERE email=?",
+//       [email]
+//     );
+
+//     if (rows.length === 0) {
+//       return res.status(400).json({ message: "Email not registered" });
+//     }
+
+//     const token = crypto.randomBytes(32).toString("hex");
+
+//     const expires = Date.now() + 15 * 60 * 1000;
+
+//     await pool.query(
+//       "UPDATE users SET reset_token=?, reset_expires=? WHERE email=?",
+//       [token, expires, email]
+//     );
+
+//     const link = `http://localhost:5173/reset-password`;
+
+//     await sendMail(email, link);
+
+//     res.json({ message: "Reset link sent" });
+
+//   } catch (err) {
+//     console.log(err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+let resetStore = {}; // temp memory
+
 exports.forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
+  const { email } = req.body;
 
-    const [rows] = await pool.query(
-      "SELECT * FROM users WHERE email=?",
-      [email]
-    );
+  const token = crypto.randomBytes(32).toString("hex");
 
-    if (rows.length === 0) {
-      return res.status(400).json({ message: "Email not registered" });
-    }
+  // 🔥 token ko email se map kar diya
+  resetStore[token] = email;
 
-    const token = crypto.randomBytes(32).toString("hex");
+  // 🔥 CLEAN URL (NO TOKEN)
+  const link = `http://localhost:5173/reset-password`;
 
-    const expires = Date.now() + 15 * 60 * 1000;
+  // 🔥 mail me hidden token (query me nahi dikh raha user ko)
+  await sendMail(email, `${link}?session=${token}`);
 
-    await pool.query(
-      "UPDATE users SET reset_token=?, reset_expires=? WHERE email=?",
-      [token, expires, email]
-    );
-
-    const link = `http://localhost:5173/reset-password`;
-
-    await sendMail(email, link);
-
-    res.json({ message: "Reset link sent" });
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server error" });
-  }
+  res.json({ message: "Reset link sent 📩" });
 };
 ////////////////////////////// RESET PASSWORD
-exports.resetPassword = async (req, res) => {
-  try {
-    const { token } = req.params;
-    const { newPassword } = req.body;
+// exports.resetPassword = async (req, res) => {
+//   try {
+//     const { token } = req.params;
+//     const { newPassword } = req.body;
 
-    const [rows] = await pool.query(
-      "SELECT * FROM users WHERE reset_token=?",
-      [token]
-    );
+//     const [rows] = await pool.query(
+//       "SELECT * FROM users WHERE reset_token=?",
+//       [token]
+//     );
 
-    if (rows.length === 0) {
-      return res.status(400).json({ message: "Invalid link" });
-    }
+//     if (rows.length === 0) {
+//       return res.status(400).json({ message: "Invalid link" });
+//     }
 
-    const user = rows[0];
+//     const user = rows[0];
 
-    if (Date.now() > user.reset_expires) {
-      return res.status(400).json({ message: "Link expired" });
-    }
+//     if (Date.now() > user.reset_expires) {
+//       return res.status(400).json({ message: "Link expired" });
+//     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+//     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    await pool.query(
-      "UPDATE users SET password=?, reset_token=NULL, reset_expires=NULL WHERE id=?",
-      [hashedPassword, user.id]
-    );
+//     await pool.query(
+//       "UPDATE users SET password=?, reset_token=NULL, reset_expires=NULL WHERE id=?",
+//       [hashedPassword, user.id]
+//     );
 
-    res.json({ message: "Password updated" });
+//     res.json({ message: "Password updated" });
 
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+//   } catch (err) {
+//     console.log(err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
   
+
+exports.resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  const email = resetStore[token];
+
+  if (!email) {
+    return res.status(400).json({ message: "Invalid link ❌" });
+  }
+
+  const hashed = await bcrypt.hash(newPassword, 10);
+
+  await pool.query(
+    "UPDATE users SET password = ? WHERE email = ?",
+    [hashed, email]
+  );
+
+  delete resetStore[token];
+
+  res.json({ message: "Password updated successfully " });
+};

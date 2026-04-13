@@ -9,9 +9,9 @@ router.post("/login", login);
 router.post("/verify-otp", verifyOtp);
 router.post("/resend-otp", resendOtp);
 router.post("/forgot-password",forgotPassword);
-router.post("/reset-password/:token", resetPassword);
+router.post("/reset-password", resetPassword);
 // router.get("/dashboard", authMiddleware, (req, res) => {
-//   res.json({ message: "Welcome Vishal 🔥" });
+//   res.json({ message: "Welcome Vishal" });
 // });
 
 module.exports = router;
