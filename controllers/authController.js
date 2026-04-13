@@ -1,8 +1,10 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
-const sendOTP = require("../config/mailer");
+// const sendOTP = require("../config/mailer");
 const jwt =  require("jsonwebtoken");
+const { sendOTP, sendMail } = require("../config/mailer");
 const crypto = require("crypto");
+
 
 let otpStore = {}; // temp store
 
@@ -98,6 +100,73 @@ exports.resendOtp = async (req, res) => {
 
 
 
+////////////////////////// FORGOT PASSWORD
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
 
+    const [rows] = await pool.query(
+      "SELECT * FROM users WHERE email=?",
+      [email]
+    );
 
+    if (rows.length === 0) {
+      return res.status(400).json({ message: "Email not registered" });
+    }
 
+    const token = crypto.randomBytes(32).toString("hex");
+
+    const expires = Date.now() + 15 * 60 * 1000;
+
+    await pool.query(
+      "UPDATE users SET reset_token=?, reset_expires=? WHERE email=?",
+      [token, expires, email]
+    );
+
+    const link = `http://localhost:5173/reset-password`;
+
+    await sendMail(email, link);
+
+    res.json({ message: "Reset link sent" });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+////////////////////////////// RESET PASSWORD
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+
+    const [rows] = await pool.query(
+      "SELECT * FROM users WHERE reset_token=?",
+      [token]
+    );
+
+    if (rows.length === 0) {
+      return res.status(400).json({ message: "Invalid link" });
+    }
+
+    const user = rows[0];
+
+    if (Date.now() > user.reset_expires) {
+      return res.status(400).json({ message: "Link expired" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      "UPDATE users SET password=?, reset_token=NULL, reset_expires=NULL WHERE id=?",
+      [hashedPassword, user.id]
+    );
+
+    res.json({ message: "Password updated" });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+  
