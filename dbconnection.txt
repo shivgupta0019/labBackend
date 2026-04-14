@@ -1,0 +1,186 @@
+-- DROP TABLE main_labtest;
+CREATE TABLE main_labtest (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    labtest_code VARCHAR(20) UNIQUE,
+    labtest_name VARCHAR(150) NOT NULL,
+    location VARCHAR(150) NOT NULL,
+    labtest_type JSON NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+INSERT INTO main_labtest (labtest_name, location, labtest_type)
+VALUES ('Food Test', 'Delhi', JSON_ARRAY('micro','chemical'));
+
+UPDATE main_labtest
+SET labtest_code = CONCAT('LT-', LPAD(id, 4, '0'))
+WHERE id = LAST_INSERT_ID();
+
+-- location table 
+CREATE TABLE location (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    labs_id JSON NOT NULL,
+    labtest_code VARCHAR(20) NOT NULL
+);
+
+INSERT INTO location (name, labs_id, labtest_code)
+VALUES
+('Delhi Central Lab Hub', JSON_ARRAY(1,2,3), 'LT-0001');
+
+-- all labs table
+
+CREATE TABLE labname (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    address VARCHAR(500) NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    labtest_code VARCHAR(20) NOT NULL
+);
+
+INSERT INTO labname (name, address, type, labtest_code)
+VALUES
+('Micro Biology Lab', 'A-12, Industrial Area, Phase 2, New Delhi, Delhi 110020', 'inhouse', 'LT-0001');
+
+-- testing tabls
+
+-- 1st ETO Testing
+
+CREATE TABLE eto (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    eto_concentration VARCHAR(50) NOT NULL,   -- e.g. 600 mg/L
+    exposure_time VARCHAR(50) NOT NULL,       -- e.g. 4 hours
+    temperature VARCHAR(50) NOT NULL,         -- e.g. 54°C
+    humidity VARCHAR(50) NOT NULL,            -- e.g. 60%
+    residue_level VARCHAR(50) NOT NULL,       -- e.g. < 10 ppm
+    labtest_code VARCHAR(20) NOT NULL
+);
+
+INSERT INTO eto 
+(eto_concentration, exposure_time, temperature, humidity, residue_level, labtest_code)
+VALUES
+('650 mg/L', '4.5 hours', '55°C', '62%', '< 9 ppm', 'LT-0004');
+
+-- 2nd micro testing
+
+CREATE TABLE micro (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    total_plate_count VARCHAR(50) NOT NULL,     -- e.g. < 100 CFU/g
+    yeast_mold VARCHAR(50) NOT NULL,            -- e.g. < 10 CFU/g
+    e_coli VARCHAR(50) NOT NULL,                -- e.g. Absent/25g
+    salmonella VARCHAR(50) NOT NULL,            -- e.g. Absent/25g
+    coliform_bacteria VARCHAR(50) NOT NULL,     -- e.g. < 3 MPN/g
+    labtest_code VARCHAR(20) NOT NULL
+);
+INSERT INTO micro
+(total_plate_count, yeast_mold, e_coli, salmonella, coliform_bacteria, labtest_code)
+VALUES
+('< 120 CFU/g', '< 12 CFU/g', 'Absent/25g', 'Absent/25g', '< 4 MPN/g', 'LT-0004');
+
+
+-- 3rd physical testing
+
+CREATE TABLE physical (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    texture_analysis VARCHAR(100) NOT NULL,        -- e.g. Firm, 8.5 N
+    color_measurement VARCHAR(100) NOT NULL,       -- e.g. L*=92
+    moisture_content VARCHAR(50) NOT NULL,         -- e.g. 12.5%
+    particle_size_shape VARCHAR(100) NOT NULL,     -- e.g. 50–100 µm
+    viscosity VARCHAR(100) NOT NULL,               -- e.g. 450 mPa·s
+    density_specific VARCHAR(100) NOT NULL,        -- e.g. 1.05 g/cm³
+    water_activity VARCHAR(50) NOT NULL,           -- e.g. 0.87 aw
+    labtest_code VARCHAR(20) NOT NULL
+);
+
+INSERT INTO physical
+(texture_analysis, color_measurement, moisture_content, particle_size_shape, viscosity, density_specific, water_activity, labtest_code)
+VALUES
+('Firm, 8.5 N', 'L*=92', '12.5%', '50–100 µm', '450 mPa·s', '1.05 g/cm³', '0.87 aw', 'LT-0001');
+
+
+-- 4th chemical
+CREATE TABLE chemical (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ph_level VARCHAR(20) NOT NULL,           -- e.g. 6.8
+    ash_content VARCHAR(50) NOT NULL,        -- e.g. 1.2%
+    protein_content VARCHAR(50) NOT NULL,    -- e.g. 18.5%
+    fat_content VARCHAR(50) NOT NULL,        -- e.g. 5.3%
+    peroxide_value VARCHAR(50) NOT NULL,     -- e.g. 2.1 meq/kg
+    heavy_metals VARCHAR(100) NOT NULL,      -- e.g. Pb < 0.5 ppm
+    labtest_code VARCHAR(20) NOT NULL
+);
+
+INSERT INTO chemical
+(ph_level, ash_content, protein_content, fat_content, peroxide_value, heavy_metals, labtest_code)
+VALUES
+('6.8', '1.2%', '18.5%', '5.3%', '2.1 meq/kg', 'Pb < 0.5 ppm', 'LT-0001');
+
+
+-- 5th pesticide testing
+
+CREATE TABLE pesticide (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    active_ingredient VARCHAR(100) NOT NULL,   -- e.g. Chlorpyrifos
+    concentration VARCHAR(50) NOT NULL,        -- e.g. 500 g/L
+    solvent_used VARCHAR(100) NOT NULL,        -- e.g. Xylene
+    stability_test VARCHAR(100) NOT NULL,      -- e.g. Stable at 54°C
+    ph_solution VARCHAR(20) NOT NULL,       -- e.g. 6.5
+    labtest_code VARCHAR(20) NOT NULL
+);
+
+INSERT INTO pesticide 
+(active_ingredient, concentration, solvent_used, stability_test, ph_solution, labtest_code)
+VALUES
+('Chlorpyrifos', '500 g/L', 'Xylene', 'Stable at 54°C', '6.5', 'LT-0001')
+
+
+-- scientist table 
+
+CREATE TABLE scientist (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(20) NOT NULL UNIQUE,   -- e.g. USR-MNWW6XNM
+    name VARCHAR(150) NOT NULL,            -- Full name
+    role VARCHAR(150) NOT NULL,
+    labtest_code VARCHAR(20) NOT NULL 
+);
+
+
+INSERT INTO scientist (user_id, name, role, labtest_code)
+VALUES
+('USR-F7G8H9J1', 'Rahul Sharma', 'senior_scientist', 'LT-0002');
+
+
+
+-- raw material 
+
+CREATE TABLE raw_material (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    material_code VARCHAR(20) NOT NULL UNIQUE,   -- e.g. MAT-001
+    material_name VARCHAR(150) NOT NULL,         -- e.g. Sodium Chloride
+    category VARCHAR(250) NOT NULL,
+    supplier VARCHAR(150) NOT NULL,              -- e.g. Merck India
+    storage_condition VARCHAR(250) NOT NULL NOT NULL,
+    labtest_code VARCHAR(20) NOT NULL
+);
+
+INSERT INTO raw_material 
+(material_code, material_name, category, supplier, storage_condition, labtest_code)
+VALUES
+('MAT-001', 'Sodium Chloride', 'chemical', 'Merck India', 'room_temperature', 'LT-0001'); 
+
+-- instrument table
+
+
+CREATE TABLE instrument (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    instrument_id VARCHAR(20) NOT NULL UNIQUE,   -- e.g. INS-001
+    instrument_name VARCHAR(150) NOT NULL,       -- e.g. HPLC Analyzer
+    model VARCHAR(150) NOT NULL,                 -- e.g. Agilent 1260
+    calibration_date DATE NOT NULL,             -- dd/mm/yyyy
+    next_calibration_date DATE NOT NULL,        -- dd/mm/yyyy
+    labtest_code VARCHAR(20) NOT NULL
+);
+
+INSERT INTO instrument 
+(instrument_id, instrument_name, model, calibration_date, next_calibration_date, labtest_code)
+VALUES
+('INS-001', 'HPLC Analyzer', 'Agilent 1260', '2025-01-10', '2026-01-10', 'LT-0001');
