@@ -6,7 +6,7 @@ const { sendOTP, sendMail } = require("../config/mailer");
 const crypto = require("crypto");
 
 
-let otpStore = {}; // temp store
+let otpStore = {}; // temp store;
 
 //  LOGIN
 exports.login = async (req, res) => {
@@ -150,9 +150,9 @@ exports.forgotPassword = async (req, res) => {
   // 🔥 mail me hidden token (query me nahi dikh raha user ko)
   await sendMail(email, `${link}?session=${token}`);
 
-  res.json({ message: "Reset link sent 📩" });
+  res.json({ message: "Reset link sent " });
 };
-////////////////////////////// RESET PASSWORD
+////////////////////////////// RESET PASSWORD//////
 // exports.resetPassword = async (req, res) => {
 //   try {
 //     const { token } = req.params;
@@ -208,4 +208,61 @@ exports.resetPassword = async (req, res) => {
   delete resetStore[token];
 
   res.json({ message: "Password updated successfully " });
+};
+
+/////////get users///////////
+exports.getUsers = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT id, name, email, phone, role FROM users"
+    );
+
+    res.json(rows);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+////////////////////////update role///////
+exports.updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    await pool.query(
+      "UPDATE users SET role=? WHERE id=?",
+      [role, id]
+    );
+
+    res.json({ message: "Role updated successfully ✅" });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+//////////////////////////////////
+exports.toggleAdmin = async (req, res) => {
+  const { id } = req.body;
+
+ const [rows] = await pool.query(
+  "SELECT id, name, email, phone, role FROM users"
+);
+
+  const currentRole = rows[0].role;
+
+  const newRole = currentRole === "admin" ? "user" : "admin";
+
+  await pool.query(
+    "UPDATE users SET role = ? WHERE id = ?",
+    [newRole, id]
+  );
+
+  res.json({ message: "Role updated", role: newRole });
 };
