@@ -1,10 +1,10 @@
 const pool = require("../config/db");
+
 const bcrypt = require("bcryptjs");
 // const sendOTP = require("../config/mailer");
-const jwt =  require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 const { sendOTP, sendMail } = require("../config/mailer");
 const crypto = require("crypto");
-
 
 let otpStore = {}; // temp store
 
@@ -16,10 +16,9 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const [rows] = await pool.query(
-      "SELECT * FROM users WHERE email = ?",
-      [email]
-    );
+    const [rows] = await pool.query("SELECT * FROM users WHERE email = ?", [
+      email,
+    ]);
 
     if (rows.length === 0) {
       return res.status(400).json({ message: "User not found" });
@@ -37,13 +36,12 @@ exports.login = async (req, res) => {
 
     otpStore[email] = {
       otp: otp,
-      expiresAt: Date.now() + 5 * 60 * 1000 // 5 min
+      expiresAt: Date.now() + 5 * 60 * 1000, // 5 min
     };
 
     await sendOTP(email, otp);
 
     res.json({ message: "OTP sent to your email" });
-
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server error" });
@@ -70,18 +68,13 @@ exports.verifyOtp = (req, res) => {
 
   delete otpStore[email];
 
- const token = jwt.sign(
-  { email },
-  "secretKey",
-  { expiresIn: "1h" }
-);
+  const token = jwt.sign({ email }, "secretKey", { expiresIn: "1h" });
 
-res.json({
-  message: "Login Successful",
-  token: token
-});
+  res.json({
+    message: "Login Successful",
+    token: token,
+  });
 };
-
 
 exports.resendOtp = async (req, res) => {
   const { email } = req.body;
@@ -90,15 +83,13 @@ exports.resendOtp = async (req, res) => {
 
   otpStore[email] = {
     otp: otp,
-    expiresAt: Date.now() + 5 * 60 * 1000
+    expiresAt: Date.now() + 5 * 60 * 1000,
   };
 
   await sendOTP(email, otp);
 
   res.json({ message: "OTP resent to email" });
 };
-
-
 
 ////////////////////////// FORGOT PASSWORD
 // exports.forgotPassword = async (req, res) => {
@@ -187,7 +178,6 @@ exports.forgotPassword = async (req, res) => {
 //     res.status(500).json({ message: "Server error" });
 //   }
 // };
-  
 
 exports.resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
@@ -200,12 +190,30 @@ exports.resetPassword = async (req, res) => {
 
   const hashed = await bcrypt.hash(newPassword, 10);
 
-  await pool.query(
-    "UPDATE users SET password = ? WHERE email = ?",
-    [hashed, email]
-  );
+  await pool.query("UPDATE users SET password = ? WHERE email = ?", [
+    hashed,
+    email,
+  ]);
 
   delete resetStore[token];
 
   res.json({ message: "Password updated successfully " });
+};
+
+exports.getAllLocations = async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM location");
+    console.log("hi..");
+
+    res.json({
+      success: true,
+      data: rows,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
 };
