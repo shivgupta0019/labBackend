@@ -23,6 +23,7 @@
     "morgan": "^1.10.1",
     "mysql2": "^3.20.0",
     "nodemailer": "^8.0.5",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "oracledb": "^6.10.0"
   }
 }

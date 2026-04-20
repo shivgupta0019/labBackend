@@ -1,29 +1,65 @@
-const pool = require("../config/db");
+const oracledb = require("../config/db");
+const { dbConfig } = require("../config/db");
 
 // create user
 async function createUser(user) {
   const { name, email, phone, password } = user;
+  let connection;
 
-  const [result] = await pool.query(
-    "INSERT INTO users (name, email, phone, password) VALUES (?, ?, ?, ?)",
-    [name, email, phone, password]
-  );
+  try {
+    connection = await oracledb.getConnection(dbConfig);
 
-  return result;
+    const result = await connection.execute(
+      "INSERT INTO users (name, email, phone, password) VALUES (:1, :2, :3, :4)",
+      [name, email, phone, password],
+      { autoCommit: true },
+    );
+
+    return result;
+  } catch (err) {
+    console.error("❌ Error creating user:", err.message);
+    throw err;
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error("❌ Error closing connection:", err.message);
+      }
+    }
+  }
 }
 
 // 🔥 find user by email
 async function findUserByEmail(email) {
-  const [rows] = await pool.query(
-    "SELECT * FROM users WHERE email = ?",
-    [email]
-  );
+  let connection;
 
-  return rows;
+  try {
+    connection = await oracledb.getConnection(dbConfig);
+
+    const result = await connection.execute(
+      "SELECT * FROM users WHERE email = :1",
+      [email],
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+    );
+
+    return result.rows || [];
+  } catch (err) {
+    console.error("❌ Error finding user:", err.message);
+    throw err;
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error("❌ Error closing connection:", err.message);
+      }
+    }
+  }
 }
 
 // 🔥 IMPORTANT EXPORT
 module.exports = {
   createUser,
-  findUserByEmail
+  findUserByEmail,
 };
