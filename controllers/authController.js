@@ -1,31 +1,25 @@
-const oracledb = require("../config/db");
-const { dbConfig } = require("../config/db");
+const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 // const sendOTP = require("../config/mailer");
-const jwt = require("jsonwebtoken");
+const jwt =  require("jsonwebtoken");
 const { sendOTP, sendMail } = require("../config/mailer");
 const crypto = require("crypto");
 
-let otpStore = {}; // temp store;
+
+let otpStore = {}; // temp store
 
 //  LOGIN
 exports.login = async (req, res) => {
   console.log("LOGIN HIT 🔥");
   console.log(req.body);
 
-  let connection;
   try {
     const { email, password } = req.body;
 
-    connection = await oracledb.getConnection(dbConfig);
-
-    const result = await connection.execute(
-      "SELECT * FROM users WHERE email = :1",
-      [email],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+    const [rows] = await pool.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
     );
-
-    const rows = result.rows || [];
 
     if (rows.length === 0) {
       return res.status(400).json({ message: "User not found" });
@@ -33,7 +27,7 @@ exports.login = async (req, res) => {
 
     const user = rows[0];
 
-    const isMatch = await bcrypt.compare(password, user.PASSWORD);
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       return res.status(400).json({ message: "Wrong password" });
@@ -43,23 +37,16 @@ exports.login = async (req, res) => {
 
     otpStore[email] = {
       otp: otp,
-      expiresAt: Date.now() + 5 * 60 * 1000, // 5 min
+      expiresAt: Date.now() + 5 * 60 * 1000 // 5 min
     };
 
     await sendOTP(email, otp);
 
     res.json({ message: "OTP sent to your email" });
+
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server error" });
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error("❌ Error closing connection:", err.message);
-      }
-    }
   }
 };
 
@@ -83,13 +70,18 @@ exports.verifyOtp = (req, res) => {
 
   delete otpStore[email];
 
-  const token = jwt.sign({ email }, "secretKey", { expiresIn: "1h" });
+ const token = jwt.sign(
+  { email },
+  "secretKey",
+  { expiresIn: "1h" }
+);
 
-  res.json({
-    message: "Login Successful",
-    token: token,
-  });
+res.json({
+  message: "Login Successful",
+  token: token
+});
 };
+
 
 exports.resendOtp = async (req, res) => {
   const { email } = req.body;
@@ -98,13 +90,15 @@ exports.resendOtp = async (req, res) => {
 
   otpStore[email] = {
     otp: otp,
-    expiresAt: Date.now() + 5 * 60 * 1000,
+    expiresAt: Date.now() + 5 * 60 * 1000
   };
 
   await sendOTP(email, otp);
 
   res.json({ message: "OTP resent to email" });
 };
+
+
 
 ////////////////////////// FORGOT PASSWORD
 // exports.forgotPassword = async (req, res) => {
@@ -156,9 +150,9 @@ exports.forgotPassword = async (req, res) => {
   // 🔥 mail me hidden token (query me nahi dikh raha user ko)
   await sendMail(email, `${link}?session=${token}`);
 
-  res.json({ message: "Reset link sent " });
+  res.json({ message: "Reset link sent 📩" });
 };
-////////////////////////////// RESET PASSWORD//////
+////////////////////////////// RESET PASSWORD
 // exports.resetPassword = async (req, res) => {
 //   try {
 //     const { token } = req.params;
@@ -193,143 +187,25 @@ exports.forgotPassword = async (req, res) => {
 //     res.status(500).json({ message: "Server error" });
 //   }
 // };
+  
 
 exports.resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
-  let connection;
 
-  try {
-    const email = resetStore[token];
+  const email = resetStore[token];
 
-    if (!email) {
-      return res.status(400).json({ message: "Invalid link ❌" });
-    }
-
-    const hashed = await bcrypt.hash(newPassword, 10);
-
-    connection = await oracledb.getConnection(dbConfig);
-
-    await connection.execute(
-      "UPDATE users SET password = :1 WHERE email = :2",
-      [hashed, email],
-      { autoCommit: true },
-    );
-
-    delete resetStore[token];
-
-    res.json({ message: "Password updated successfully " });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server error" });
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error("❌ Error closing connection:", err.message);
-      }
-    }
+  if (!email) {
+    return res.status(400).json({ message: "Invalid link ❌" });
   }
-};
 
-/////////get users///////////
-exports.getUsers = async (req, res) => {
-  let connection;
-  try {
-    connection = await oracledb.getConnection(dbConfig);
+  const hashed = await bcrypt.hash(newPassword, 10);
 
-    const result = await connection.execute(
-      "SELECT id, name, email, phone, role FROM users",
-      [],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT },
-    );
+  await pool.query(
+    "UPDATE users SET password = ? WHERE email = ?",
+    [hashed, email]
+  );
 
-    res.json(result.rows || []);
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server error" });
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error("❌ Error closing connection:", err.message);
-      }
-    }
-  }
-};
+  delete resetStore[token];
 
-////////////////////////update role///////
-exports.updateUserRole = async (req, res) => {
-  let connection;
-  try {
-    const { id } = req.params;
-    const { role } = req.body;
-
-    connection = await oracledb.getConnection(dbConfig);
-
-    await connection.execute(
-      "UPDATE users SET role = :1 WHERE id = :2",
-      [role, id],
-      { autoCommit: true },
-    );
-
-    res.json({ message: "Role updated successfully ✅" });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server error" });
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error("❌ Error closing connection:", err.message);
-      }
-    }
-  }
-};
-
-//////////////////////////////////
-exports.toggleAdmin = async (req, res) => {
-  let connection;
-  try {
-    const { id } = req.body;
-
-    connection = await oracledb.getConnection(dbConfig);
-
-    const result = await connection.execute(
-      "SELECT id, name, email, phone, role FROM users WHERE id = :1",
-      [id],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT },
-    );
-
-    const rows = result.rows || [];
-
-    if (rows.length === 0) {
-      return res.status(400).json({ message: "User not found" });
-    }
-
-    const currentRole = rows[0].ROLE;
-
-    const newRole = currentRole === "admin" ? "user" : "admin";
-
-    await connection.execute(
-      "UPDATE users SET role = :1 WHERE id = :2",
-      [newRole, id],
-      { autoCommit: true },
-    );
-
-    res.json({ message: "Role updated", role: newRole });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server error" });
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error("❌ Error closing connection:", err.message);
-      }
-    }
-  }
+  res.json({ message: "Password updated successfully " });
 };

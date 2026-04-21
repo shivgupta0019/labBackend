@@ -3,7 +3,6 @@ const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
-require("./config/db"); // Initialize Oracle DB connection
 
 const app = express();
 app.use(cors());

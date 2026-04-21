@@ -1,33 +1,24 @@
-const oracledb = require("oracledb");
+const mysql = require("mysql2/promise");
 require("dotenv").config();
 
-// Configure thin client (no native Oracle Client libraries needed for remote connections)
-oracledb.connectionClass = "NODEJS";
-
-const dbConfig = {
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
   user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  connectString: process.env.DB_CONNECT_STRING,
-};
+  password: process.env.DB_PASSWORD || "123456",
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: process.env.DB_CONNECTION_LIMIT || 10,
+});
 
-// Test connection
+// test connection
 (async () => {
-  let connection;
   try {
-    connection = await oracledb.getConnection(dbConfig);
-    console.log("✅ Oracle DB Connected");
+    const conn = await pool.getConnection();
+    console.log(" MySQL Connected");
+    conn.release();
   } catch (err) {
     console.log("❌ DB Error:", err.message);
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.log("❌ Close Error:", err.message);
-      }
-    }
   }
 })();
 
-module.exports = oracledb;
-module.exports.dbConfig = dbConfig;
+module.exports = pool; //
