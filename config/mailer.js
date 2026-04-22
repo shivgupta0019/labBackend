@@ -3,25 +3,30 @@ const nodemailer = require("nodemailer");
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "vsss12908@gmail.com",
-    pass: "bygiuczokelhehdf", // App Password
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS, // App Password
   },
 });
 
 //  OTP MAIL
 const sendOTP = async (email, otp) => {
-  await transporter.sendMail({
-    from: "vsss12908@gmail.com",
-    to: email,
-    subject: "Your Login OTP",
-    text: `Your OTP is: ${otp}`,
-  });
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Your Login OTP",
+      text: `Your OTP is: ${otp}`,
+    });
+    console.log("✅ OTP sent");
+  } catch (err) {
+    console.log("❌ MAIL ERROR:", err);
+  }
 };
 
 //  RESET PASSWORD MAIL
 const sendMail = async (email, resetLink) => {
   await transporter.sendMail({
-    from: "vsss12908@gmail.com",
+    from: process.env.EMAIL_USER,
     to: email,
     subject: "Reset Password",
     html: `
