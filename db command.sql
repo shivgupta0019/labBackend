@@ -54,3 +54,24 @@ CREATE TABLE trusted_devices (
 );
 
 /////////////////////////////
+
+
+CREATE TABLE user_profiles (
+    user_email VARCHAR2(255) PRIMARY KEY,
+    
+    full_name VARCHAR2(150),
+    dob DATE,
+    gender VARCHAR2(20),
+    city VARCHAR2(100),
+    state VARCHAR2(100),
+    address VARCHAR2(500),
+    bio VARCHAR2(1000),
+    photo CLOB,
+    
+    updated_at DATE DEFAULT SYSDATE,
+
+    CONSTRAINT fk_user_email 
+    FOREIGN KEY (user_email) 
+    REFERENCES users(email)
+    ON DELETE CASCADE
+);
