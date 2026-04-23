@@ -11,7 +11,6 @@ const otpLimiter = rateLimit({
   message: "Too many attempts, try again after 5 minutes",
 });
 
-
 router.post("/signup", signup);
 router.post("/login", login);
 
