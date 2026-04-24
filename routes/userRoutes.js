@@ -27,6 +27,16 @@ const {
   getAllTest,
   createTest,
 } = require("../controllers/useAdminLab");
+const {
+  adminTrf,
+  allTrf,
+  getTrfById,
+  updateTrf,
+  deleteTrf,
+  getTrfForUserFill,
+  fillTrfValues,
+  getFilledTrfs,
+} = require("../controllers/useTrf");
 
 router.post("/signup", signup);
 router.post("/login", login);
@@ -54,6 +64,20 @@ router.get("/products", getAllProducts);
 router.delete("/products/:id", deleteProduct);
 router.get("/tests", getAllTest);
 router.post("/create-test", createTest);
+
+//trf
+router.post("/trf", adminTrf);
+router.get("/trf", allTrf);
+router.get("/trf/filled", getFilledTrfs);
+
+// ⚠️ Yeh line PEHLE honi chahiye
+router.get("/trf/user/:id", getTrfForUserFill);
+router.patch("/trf/:id/fill", fillTrfValues);
+
+// Yeh lines BAAD MEIN
+router.get("/trf/:id", getTrfById);
+router.put("/trf/:id", updateTrf);
+router.delete("/trf/:id", deleteTrf);
 // router.get("/dashboard", authMiddleware, (req, res) => {
 //   res.json({ message: "Welcome Vishal" });
 // });
