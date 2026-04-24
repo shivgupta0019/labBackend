@@ -72,6 +72,7 @@ exports.getAllTest = async (req, res) => {
 
     const selectSql = `
       SELECT 
+        t.id,
         t.test_name,
         f.field_name,
         f.label,
@@ -86,10 +87,11 @@ exports.getAllTest = async (req, res) => {
     });
 
     const TESTING_FIELDS = {};
-
+    console.log("result", result);
     result.rows.forEach((row) => {
       const testName = row.TEST_NAME; // ✅ correct
       const field = {
+        id: row.ID,
         name: row.FIELD_NAME,
         label: row.LABEL,
         placeholder: row.PLACEHOLDER,
@@ -140,7 +142,7 @@ exports.deleteProduct = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    console.log(allRows, allRows);
+    // console.log(allRows, allRows);
     const allProducts = allRows.rows.map((row) => ({
       id: row.ID,
       productName: row.PRODUCT_NAME,
@@ -173,7 +175,7 @@ exports.getAllProducts = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    console.log(allRows, allRows);
+    // console.log(allRows, allRows);
     const allProducts = allRows.rows.map((row) => ({
       id: row.ID,
       productName: row.PRODUCT_NAME,
@@ -246,7 +248,7 @@ exports.allProducts = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    console.log(allRows, allRows);
+    // console.log(allRows, allRows);
     const allProducts = allRows.rows.map((row) => ({
       id: row.ID,
       productName: row.PRODUCT_NAME,
@@ -305,7 +307,7 @@ exports.deleteLab = async (req, res) => {
       address: row.ADDRESS,
       phone: row.PHONE,
       adminName: row.ADMIN_NAME,
-      tabType: row.LAB_TYPE,
+      labType: row.LAB_TYPE,
       savedAt: row?.UPDATED_AT || row?.CREATED_AT,
     }));
 
@@ -329,14 +331,14 @@ exports.deleteLab = async (req, res) => {
 
 exports.updateLab = async (req, res) => {
   const labId = parseInt(req.params.id, 10);
-  const { labName, gst, address, phone, adminName, tabType, labCode } =
+  const { labName, gst, address, phone, adminName, labType, labCode } =
     req.body;
 
   // Validation
   if (!labName || !labName.trim()) {
     return res.status(400).json({ error: "Lab Name is required." });
   }
-  if (!tabType || !["internal", "thirdparty"].includes(tabType)) {
+  if (!labType || !["internal", "thirdparty"].includes(labType)) {
     return res
       .status(400)
       .json({ error: "Valid lab type (internal/thirdparty) is required." });
@@ -353,7 +355,7 @@ exports.updateLab = async (req, res) => {
           address = :address,
           phone = :phone,
           admin_name = :adminName,
-          lab_type = :tabType,
+          lab_type = :labType,
           lab_code = :labCode,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = :id
@@ -369,7 +371,7 @@ exports.updateLab = async (req, res) => {
         address: address || null,
         phone: phone || null,
         adminName: adminName || null,
-        tabType: tabType,
+        labType: labType,
         labCode: labCode ? labCode.trim() : null,
         outCreatedAt: { dir: oracledb.BIND_OUT, type: oracledb.DATE },
       },
@@ -389,7 +391,7 @@ exports.updateLab = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    console.log(allRows, allRows);
+    // console.log(allRows, allRows);
     const allLabs = allRows.rows.map((row) => ({
       id: row.ID,
       labCode: row.LAB_CODE,
@@ -398,7 +400,7 @@ exports.updateLab = async (req, res) => {
       address: row.ADDRESS,
       phone: row.PHONE,
       adminName: row.ADMIN_NAME,
-      tabType: row.LAB_TYPE,
+      labType: row.LAB_TYPE,
       savedAt: row?.UPDATED_AT || row?.CREATED_AT,
     }));
 
@@ -438,7 +440,7 @@ exports.getAllLabs = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    console.log(allRows, allRows);
+    // console.log(allRows, allRows);
     const allLabs = allRows.rows.map((row) => ({
       id: row.ID,
       labCode: row.LAB_CODE,
@@ -447,7 +449,7 @@ exports.getAllLabs = async (req, res) => {
       address: row.ADDRESS,
       phone: row.PHONE,
       adminName: row.ADMIN_NAME,
-      tabType: row.LAB_TYPE,
+      labType: row.LAB_TYPE,
       savedAt: row?.UPDATED_AT || row?.CREATED_AT,
     }));
 
@@ -476,7 +478,7 @@ exports.getAllLabs = async (req, res) => {
   }
 };
 exports.allLabs = async (req, res) => {
-  const { labName, gst, address, phone, adminName, tabType, labCode } =
+  const { labName, gst, address, phone, adminName, labType, labCode } =
     req.body;
 
   // Validation
@@ -486,7 +488,7 @@ exports.allLabs = async (req, res) => {
   if (!labCode || !labCode.trim()) {
     return res.status(400).json({ error: "Lab Code is required." });
   }
-  if (!tabType || !["internal", "thirdparty"].includes(tabType)) {
+  if (!labType || !["internal", "thirdparty"].includes(labType)) {
     return res
       .status(400)
       .json({ error: "Valid lab type (internal/thirdparty) is required." });
@@ -510,7 +512,7 @@ exports.allLabs = async (req, res) => {
         address: address || null,
         phone: phone || null,
         adminName: adminName || null,
-        labType: tabType, // matches frontend field name
+        labType: labType, // matches frontend field name
         labCode: labCode.trim(),
         outId: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
         outCreatedAt: { dir: oracledb.BIND_OUT, type: oracledb.DATE },
@@ -526,7 +528,7 @@ exports.allLabs = async (req, res) => {
       address: address || "",
       phone: phone || "",
       adminName: adminName || "",
-      tabType: tabType,
+      labType: labType,
       savedAt: result.outBinds.outCreatedAt[0]
         ? new Date(result.outBinds.outCreatedAt[0]).toLocaleString()
         : new Date().toLocaleString(),
@@ -541,7 +543,7 @@ exports.allLabs = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    console.log(allRows, allRows);
+    // console.log(allRows, allRows);
     const allLabs = allRows.rows.map((row) => ({
       id: row.ID,
       labCode: row.LAB_CODE,
@@ -550,7 +552,7 @@ exports.allLabs = async (req, res) => {
       address: row.ADDRESS,
       phone: row.PHONE,
       adminName: row.ADMIN_NAME,
-      tabType: row.LAB_TYPE,
+      labType: row.LAB_TYPE,
       savedAt: row?.UPDATED_AT || row?.CREATED_AT,
     }));
 
