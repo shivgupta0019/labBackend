@@ -5,11 +5,11 @@ const { login, verifyOtp, resendOtp, forgotPassword, resetPassword, getUsers, up
 const authMiddleware = require("../middleware/authMiddleware");
 const rateLimit = require("express-rate-limit");
 
-const otpLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 min
-  max: 20, // max 5 attempts
-  message: "Too many attempts, try again after 5 minutes",
-});
+// const otpLimiter = rateLimit({
+//   windowMs: 5 * 60 * 1000, // 5 min
+//   max: 20, // max 5 attempts
+//   message: "Too many attempts, try again after 5 minutes",
+// });
 
 
 const {
@@ -29,12 +29,13 @@ const {
 } = require("../controllers/useAdminLab");
 const { getProfile, updateProfile } = require("../controllers/profileController");
 const profileMiddleware = require("../middleware/profileMiddleware");
+const upload = require("../middleware/upload");
 
 router.post("/signup", signup);
 router.post("/login", login);
 
 router.post("/verify-otp", verifyOtp);
-router.post("/resend-otp",otpLimiter, resendOtp);
+router.post("/resend-otp", resendOtp);
 
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
@@ -44,7 +45,7 @@ router.put("/users/:id/role",authMiddleware,updateUserRole);
 router.post("/toggle-admin",authMiddleware, toggleAdmin);
 
 router.get("/profile",profileMiddleware,getProfile);
-router.put("/profile",profileMiddleware,updateProfile);
+router.put("/profile",profileMiddleware,upload.single("photo"),updateProfile);
 
 router.post("/logout", authMiddleware, logout);
 

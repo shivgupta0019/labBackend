@@ -12,7 +12,7 @@ module.exports = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    req.user = decoded; //  important
+    req.user = decoded; // email yaha se milega
 
     next();
   } catch (err) {
