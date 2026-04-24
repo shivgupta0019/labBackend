@@ -3,15 +3,26 @@ const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
-require("./config/db"); // Initialize Oracle DB connection
+
+require("./config/db");
 
 const app = express();
-app.use(cors());
+
+//  MIDDLEWARES
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.use(express.json());
+app.use(cookieParser());
 app.use(morgan("dev"));
 
+//  ROUTES
 app.use("/api", userRoutes);
 
+//  SERVER
 app.listen(5000, () => {
-  console.log(" Server running on port 5000");
+  console.log("🚀 Server running on port 5000");
 });

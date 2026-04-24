@@ -10,6 +10,7 @@ const {
   getUsers,
   updateUserRole,
   toggleAdmin,
+  logout,
 } = require("../controllers/authController");
 const authMiddleware = require("../middleware/authMiddleware");
 const {
@@ -27,6 +28,7 @@ const {
   getAllTest,
   createTest,
 } = require("../controllers/useAdminLab");
+
 const {
   adminTrf,
   allTrf,
@@ -47,9 +49,12 @@ router.post("/resend-otp", resendOtp);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
-router.get("/users", getUsers);
-router.put("/users/:id/role", updateUserRole);
-router.post("/toggle-admin", toggleAdmin);
+router.get("/users", authMiddleware, getUsers);
+router.put("/users/:id/role", authMiddleware, updateUserRole);
+router.post("/toggle-admin", authMiddleware, toggleAdmin);
+
+router.post("/logout", authMiddleware, logout);
+
 //lab routes
 router.post("/companies", allCompanies);
 router.get("/getCompanies", getAllCompanies);
