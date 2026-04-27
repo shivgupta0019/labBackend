@@ -159,17 +159,35 @@ exports.verifyOtp = async (req, res) => {
 ///////////////
 exports.resendOtp = async (req, res) => {
   const { email } = req.body;
+  let connection;
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  try {
+    connection = await oracledb.getConnection(dbConfig);
 
-  otpStore[email] = {
-    otp: otp,
-    expiresAt: Date.now() + 5 * 60 * 1000,
-  };
+    // 🔥 new OTP generate
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 5 * 60 * 1000);
 
-  await sendOTP(email, otp);
+    // 🔥 DB update (IMPORTANT)
+    await connection.execute(
+      `UPDATE users 
+       SET otp = :1, otp_expires = :2 
+       WHERE email = :3`,
+      [otp, expires, email],
+      { autoCommit: true }
+    );
 
-  res.json({ message: "OTP resent to email" });
+    // 🔥 send mail
+    await sendOTP(email, otp);
+
+    res.json({ message: "OTP resent successfully" });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server error" });
+  } finally {
+    if (connection) await connection.close();
+  }
 };
 
 ////////////////////////// FORGOT PASSWORD
