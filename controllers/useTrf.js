@@ -333,13 +333,16 @@ exports.updateTrf = async (req, res) => {
         const f = test.fields[i];
         await connection.execute(
           `INSERT INTO trf_test_fields 
-           (trf_selected_id, field_id, custom_label, placeholder, is_predefined, sort_order, field_value)
-           VALUES (:selectedId, :fieldId, :customLabel, :placeholder, :isPredefined, :sortOrder, :fieldValue)`,
+           (trf_selected_id, field_id, custom_label, placeholder,  is_predefined, sort_order, field_value)
+           VALUES (:selectedId, :fieldId, :customLabel, :placeholder,  :isPredefined, :sortOrder, :fieldValue)`,
           {
             selectedId: selectedTestId,
             fieldId: f.isPredefined ? f.fieldId : null,
-            customLabel: f.isPredefined ? null : f.customLabel || f.fieldName,
+            customLabel: f.isPredefined
+              ? f.customLabel
+              : f.customLabel || f.fieldName,
             placeholder: f.placeholder,
+
             isPredefined: f.isPredefined ? 1 : 0,
             sortOrder: i,
             fieldValue: f.fieldValue !== undefined ? f.fieldValue : null,
@@ -379,7 +382,7 @@ exports.deleteTrf = async (req, res) => {
     if (checkResult.rows.length === 0) {
       return res.status(404).json({ success: false, error: "TRF not found" });
     }
-    console.log("hi..1");
+
     // Step 2: Delete child records first (FK constraint)
     await connection.execute(
       `DELETE FROM trf_test_fields 
@@ -388,7 +391,7 @@ exports.deleteTrf = async (req, res) => {
        )`,
       { id: trfId },
     );
-    console.log("hi..2");
+
     // Step 3: Delete selected tests
     await connection.execute(
       `DELETE FROM trf_selected_tests WHERE trf_id = :id`,

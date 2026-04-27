@@ -87,7 +87,7 @@ exports.getAllTest = async (req, res) => {
     });
 
     const TESTING_FIELDS = {};
-    console.log("result", result);
+
     result.rows.forEach((row) => {
       const testName = row.TEST_NAME; // ✅ correct
       const field = {
@@ -142,7 +142,7 @@ exports.deleteProduct = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    // console.log(allRows, allRows);
+
     const allProducts = allRows.rows.map((row) => ({
       id: row.ID,
       productName: row.PRODUCT_NAME,
@@ -175,7 +175,7 @@ exports.getAllProducts = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    // console.log(allRows, allRows);
+
     const allProducts = allRows.rows.map((row) => ({
       id: row.ID,
       productName: row.PRODUCT_NAME,
@@ -248,7 +248,7 @@ exports.allProducts = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    // console.log(allRows, allRows);
+
     const allProducts = allRows.rows.map((row) => ({
       id: row.ID,
       productName: row.PRODUCT_NAME,
@@ -298,7 +298,7 @@ exports.deleteLab = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    // console.log(allRows, allRows);
+
     const allLabs = allRows.rows.map((row) => ({
       id: row.ID,
       labCode: row.LAB_CODE,
@@ -391,7 +391,7 @@ exports.updateLab = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    // console.log(allRows, allRows);
+
     const allLabs = allRows.rows.map((row) => ({
       id: row.ID,
       labCode: row.LAB_CODE,
@@ -440,7 +440,7 @@ exports.getAllLabs = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    // console.log(allRows, allRows);
+
     const allLabs = allRows.rows.map((row) => ({
       id: row.ID,
       labCode: row.LAB_CODE,
@@ -543,7 +543,7 @@ exports.allLabs = async (req, res) => {
     const allRows = await connection.execute(selectSql, [], {
       outFormat: oracledb.OUT_FORMAT_OBJECT,
     });
-    // console.log(allRows, allRows);
+
     const allLabs = allRows.rows.map((row) => ({
       id: row.ID,
       labCode: row.LAB_CODE,
