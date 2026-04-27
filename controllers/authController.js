@@ -7,73 +7,6 @@ const { sendOTP, sendMail } = require("../config/mailer");
 const crypto = require("crypto");
 const { blacklistedTokens } = require("../utils/tokenStore");
 
-// exports.login = async (req, res) => {
-//   console.log("LOGIN HIT 🔥");
-//   console.log(req.body);
-
-//   let connection;
-
-//   try {
-//     const { email, password } = req.body;
-
-//     connection = await oracledb.getConnection(dbConfig);
-
-//     // 🔍 USER CHECK
-//     const result = await connection.execute(
-//       "SELECT * FROM users WHERE email = :1",
-//       [email],
-//       { outFormat: oracledb.OUT_FORMAT_OBJECT }
-//     );
-
-//     const rows = result.rows || [];
-
-//     if (rows.length === 0) {
-//       return res.status(400).json({ message: "User not found" });
-//     }
-
-//     const user = rows[0];
-
-//     // 🔐 PASSWORD CHECK
-//     const isMatch = await bcrypt.compare(password, user.PASSWORD);
-
-//     if (!isMatch) {
-//       return res.status(400).json({ message: "Wrong password" });
-//     }
-
-//     // 🔢 OTP GENERATE
-//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-//     // ⏳ EXPIRY (5 MIN)
-//     const expires = new Date(Date.now() + 5 * 60 * 1000);
-
-//     // 💾 SAVE OTP IN DB
-//     await connection.execute(
-//       `UPDATE users 
-//        SET otp = :1, otp_expires = :2 
-//        WHERE email = :3`,
-//       [otp, expires, email],
-//       { autoCommit: true }
-//     );
-
-//     // 📩 SEND OTP
-//     await sendOTP(email, otp);
-
-//     res.json({ message: "OTP sent to your email" });
-
-//   } catch (err) {
-//     console.log(err);
-//     res.status(500).json({ message: "Server error" });
-//   } finally {
-//     if (connection) {
-//       try {
-//         await connection.close();
-//       } catch (err) {
-//         console.error("❌ Error closing connection:", err.message);
-//       }
-//     }
-//   }
-// };
-
 exports.login = async (req, res) => {
   let connection;
 
@@ -85,7 +18,7 @@ exports.login = async (req, res) => {
     const result = await connection.execute(
       "SELECT * FROM users WHERE email = :1",
       [email],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
 
     const rows = result.rows || [];
@@ -105,27 +38,29 @@ exports.login = async (req, res) => {
     // 🔥 STEP 1: TRUSTED DEVICE CHECK
     const userAgent = req.headers["user-agent"];
     const deviceToken = req.cookies.deviceToken;
-    
+
     const deviceCheck = await connection.execute(
       `SELECT * FROM trusted_devices 
        WHERE user_email = :1 
        AND user_agent = :2 
        AND expires_at > SYSDATE`,
       [email, userAgent],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
 
     // ✅ TRUSTED → OTP SKIP
     if (deviceCheck.rows.length > 0) {
+      console.log("hi..1");
       const token = jwt.sign(
         { email: user.EMAIL, role: user.ROLE },
-        process.env.JWT_SECRET,
-        { expiresIn: "1h" }
+        "super_secret_key_123",
+        { expiresIn: "1h" },
       );
+      console.log("hi..2");
 
       return res.json({
         accessToken: token,
-        otpRequired: false
+        otpRequired: false,
       });
     }
 
@@ -138,85 +73,22 @@ exports.login = async (req, res) => {
        SET otp = :1, otp_expires = :2 
        WHERE email = :3`,
       [otp, expires, email],
-      { autoCommit: true }
+      { autoCommit: true },
     );
 
     await sendOTP(email, otp);
 
     return res.json({
       message: "OTP sent",
-      otpRequired: true
+      otpRequired: true,
     });
-
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server error" });
-
   } finally {
     if (connection) await connection.close();
   }
 };
-/////////////////////////////////////////////////////////
-// exports.verifyOtp = async (req, res) => {
-//   const { email, otp } = req.body;
-//   let connection;
-
-//   try {
-//     connection = await oracledb.getConnection(dbConfig);
-
-//     // 🔥 DB se OTP nikalo
-//     const result = await connection.execute(
-//       `SELECT otp, otp_expires, role 
-//        FROM users 
-//        WHERE email = :1`,
-//       [email],
-//       { outFormat: oracledb.OUT_FORMAT_OBJECT }
-//     );
-
-//     const user = result.rows[0];
-
-//     if (!user) {
-//       return res.status(400).json({ message: "User not found" });
-//     }
-
-//     // ❌ OTP match nahi
-//     if (user.OTP !== otp) {
-//       return res.status(400).json({ message: "Invalid OTP" });
-//     }
-
-//     // ⏳ Expiry check
-//     if (new Date() > new Date(user.OTP_EXPIRES)) {
-//       return res.status(400).json({ message: "OTP expired" });
-//     }
-
-//     // ✅ OTP clear (important)
-//     await connection.execute(
-//       `UPDATE users 
-//        SET otp = NULL, otp_expires = NULL 
-//        WHERE email = :1`,
-//       [email],
-//       { autoCommit: true }
-//     );
-
-//     // 🔐 TOKEN generate
-//     const token = jwt.sign(
-//       { email, role: user.ROLE.toLowerCase() },
-//       process.env.JWT_SECRET,
-//       { expiresIn: "1h" }
-//     );
-
-//     res.json({
-//       message: "Login Successful",
-//       token,
-//     });
-
-//   } catch (err) {
-//     console.log(err);
-//     res.status(500).json({ message: "Server error" });
-//   } finally {
-//     if (connection) await connection.close();
-//   }
-// };
 
 exports.verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
@@ -231,7 +103,7 @@ exports.verifyOtp = async (req, res) => {
       `SELECT otp, otp_expires, role 
        FROM users WHERE email = :1`,
       [email],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
 
     const user = result.rows[0];
@@ -248,7 +120,7 @@ exports.verifyOtp = async (req, res) => {
     await connection.execute(
       `UPDATE users SET otp = NULL, otp_expires = NULL WHERE email = :1`,
       [email],
-      { autoCommit: true }
+      { autoCommit: true },
     );
 
     // 🔥 SAVE TRUSTED DEVICE
@@ -262,9 +134,9 @@ exports.verifyOtp = async (req, res) => {
         email,
         deviceToken,
         userAgent,
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       ],
-      { autoCommit: true }
+      { autoCommit: true },
     );
 
     res.cookie("deviceToken", deviceToken, {
@@ -272,14 +144,11 @@ exports.verifyOtp = async (req, res) => {
       sameSite: "strict",
     });
 
-    const token = jwt.sign(
-      { email, role: user.ROLE },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    const token = jwt.sign({ email, role: user.ROLE }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
     res.json({ token, message: "Login successful" });
-
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server error" });
@@ -320,7 +189,7 @@ exports.forgotPassword = async (req, res) => {
        SET reset_token = :1, reset_expires = :2 
        WHERE email = :3`,
       [token, expires, email],
-      { autoCommit: true }
+      { autoCommit: true },
     );
 
     const link = `http://localhost:5173/reset-password?session=${token}`;
@@ -328,7 +197,6 @@ exports.forgotPassword = async (req, res) => {
     await sendMail(email, link);
 
     res.json({ message: "Reset link sent " });
-
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server error" });
@@ -350,7 +218,7 @@ exports.resetPassword = async (req, res) => {
        WHERE reset_token = :1 
        AND reset_expires > SYSDATE`,
       [token],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
 
     if (result.rows.length === 0) {
@@ -366,11 +234,10 @@ exports.resetPassword = async (req, res) => {
        SET password = :1, reset_token = NULL, reset_expires = NULL 
        WHERE email = :2`,
       [hashed, email],
-      { autoCommit: true }
+      { autoCommit: true },
     );
 
     res.json({ message: "Password updated successfully " });
-
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server error" });
@@ -381,7 +248,7 @@ exports.resetPassword = async (req, res) => {
 
 /////////get users///////////
 exports.getUsers = async (req, res) => {
-    // 🔐 ADMIN CHECK
+  // 🔐 ADMIN CHECK
   if (req.user.role !== "admin") {
     return res.status(403).json({ message: "Access denied" });
   }
@@ -390,17 +257,17 @@ exports.getUsers = async (req, res) => {
   try {
     connection = await oracledb.getConnection(dbConfig);
 
-   const result = await connection.execute(
-  `SELECT 
+    const result = await connection.execute(
+      `SELECT 
      id as "id",
      name as "name",
      email as "email",
      phone as "phone",
      role as "role"
    FROM users`,
-  [],
-  { outFormat: oracledb.OUT_FORMAT_OBJECT },
-);
+      [],
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+    );
     res.json(result.rows || []);
   } catch (err) {
     console.log(err);
@@ -430,20 +297,19 @@ exports.updateUserRole = async (req, res) => {
     const result = await connection.execute(
       "SELECT email FROM users WHERE id = :id",
       [userId],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
 
     const targetUser = result.rows[0];
 
     if (!targetUser) {
-      
       return res.status(404).json({ message: "User not found" });
     }
 
     // 🔥 IMPORTANT: self role change block
     if (req.user.email === targetUser.EMAIL) {
       return res.status(400).json({
-        message: "You can't change your own role"
+        message: "You can't change your own role",
       });
     }
 
@@ -451,11 +317,10 @@ exports.updateUserRole = async (req, res) => {
     await connection.execute(
       "UPDATE users SET role = :role WHERE id = :id",
       [role, userId],
-      { autoCommit: true }
+      { autoCommit: true },
     );
 
     res.json({ message: "Role updated successfully" });
-
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server error" });
@@ -516,10 +381,6 @@ exports.logout = async (req, res) => {
   res.json({ message: "Logged out" });
 };
 
-
-
-
-
 ///////////////refresh token
 
 exports.refreshToken = async (req, res) => {
@@ -535,11 +396,10 @@ exports.refreshToken = async (req, res) => {
     const accessToken = jwt.sign(
       { email: decoded.email },
       process.env.JWT_SECRET,
-      { expiresIn: "15m" }
+      { expiresIn: "15m" },
     );
 
     res.json({ accessToken });
-
   } catch {
     res.status(401).json({ message: "Invalid refresh token" });
   }
