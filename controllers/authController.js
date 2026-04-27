@@ -50,13 +50,11 @@ exports.login = async (req, res) => {
 
     // ✅ TRUSTED → OTP SKIP
     if (deviceCheck.rows.length > 0) {
-      console.log("hi..1");
       const token = jwt.sign(
         { email: user.EMAIL, role: user.ROLE },
         "super_secret_key_123",
         { expiresIn: "1h" },
       );
-      console.log("hi..2");
 
       return res.json({
         accessToken: token,
@@ -174,14 +172,13 @@ exports.resendOtp = async (req, res) => {
        SET otp = :1, otp_expires = :2 
        WHERE email = :3`,
       [otp, expires, email],
-      { autoCommit: true }
+      { autoCommit: true },
     );
 
     // 🔥 send mail
     await sendOTP(email, otp);
 
     res.json({ message: "OTP resent successfully" });
-
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server error" });

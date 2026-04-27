@@ -1,7 +1,6 @@
 const oracledb = require("../config/db");
 const { dbConfig } = require("../config/db");
 
-
 exports.getProfile = async (req, res) => {
   let connection;
 
@@ -29,7 +28,7 @@ exports.getProfile = async (req, res) => {
       WHERE u.email = :email
       `,
       { email },
-      { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
 
     const row = result.rows[0] || {};
@@ -140,9 +139,6 @@ exports.updateProfile = async (req, res) => {
 
   try {
     const user = req.user;
-
-    console.log("REQ BODY:", req.body);
-    console.log("FILE:", req.file); // 🔥 important debug
 
     const { full_name, dob, gender, city, state, address, bio } = req.body;
 

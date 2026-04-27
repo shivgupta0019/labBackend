@@ -8,7 +8,6 @@ async function signup(req, res) {
     if (!name || !email || !phone || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
-    console.log("BODY 👉", req.body);
 
     // duplicate check (email)
     const existing = await userModel.findUserByEmail(email);
@@ -25,11 +24,10 @@ async function signup(req, res) {
       name,
       email,
       phone,
-      password: hash
+      password: hash,
     });
 
     res.status(201).json({ message: "Signup Successful " });
-
   } catch (err) {
     console.log("ERROR ", err);
     res.status(500).json({ message: err.message });
