@@ -14,6 +14,18 @@ const {
 } = require("../controllers/authController");
 const authMiddleware = require("../middleware/authMiddleware");
 const {
+  adminTrf,
+  allTrf,
+  getTrfById,
+  updateTrf,
+  deleteTrf,
+  getTrfForUserFill,
+  fillTrfValues,
+  getFilledTrfs,
+} = require("../controllers/useTrf");
+
+
+const {
   allCompanies,
   getAllCompanies,
   updateCompany,
@@ -28,17 +40,9 @@ const {
   getAllTest,
   createTest,
 } = require("../controllers/useAdminLab");
-
-const {
-  adminTrf,
-  allTrf,
-  getTrfById,
-  updateTrf,
-  deleteTrf,
-  getTrfForUserFill,
-  fillTrfValues,
-  getFilledTrfs,
-} = require("../controllers/useTrf");
+const { getProfile, updateProfile } = require("../controllers/profileController");
+const profileMiddleware = require("../middleware/profileMiddleware");
+const upload = require("../middleware/upload");
 
 router.post("/signup", signup);
 router.post("/login", login);
@@ -53,7 +57,11 @@ router.get("/users", authMiddleware, getUsers);
 router.put("/users/:id/role", authMiddleware, updateUserRole);
 router.post("/toggle-admin", authMiddleware, toggleAdmin);
 
+router.get("/profile",profileMiddleware,getProfile);
+router.put("/profile",profileMiddleware,upload.single("photo"),updateProfile);
+
 router.post("/logout", authMiddleware, logout);
+
 
 //lab routes
 router.post("/companies", allCompanies);
@@ -83,8 +91,5 @@ router.patch("/trf/:id/fill", fillTrfValues);
 router.get("/trf/:id", getTrfById);
 router.put("/trf/:id", updateTrf);
 router.delete("/trf/:id", deleteTrf);
-// router.get("/dashboard", authMiddleware, (req, res) => {
-//   res.json({ message: "Welcome Vishal" });
-// });
 
 module.exports = router;
