@@ -1,7 +1,6 @@
 const oracledb = require("../config/db");
 const { dbConfig } = require("../config/db");
 
-
 exports.getProfile = async (req, res) => {
   let connection;
 
@@ -29,7 +28,7 @@ exports.getProfile = async (req, res) => {
       WHERE u.email = :email
       `,
       { email },
-      { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
 
     const row = result.rows[0] || {};
@@ -142,11 +141,11 @@ exports.updateProfile = async (req, res) => {
     const user = req.user;
 
     console.log("REQ BODY:", req.body);
-    console.log("FILE:", req.file); // 🔥 important debug
+    console.log("FILE:", req.file);
 
     const { full_name, dob, gender, city, state, address, bio } = req.body;
 
-    // ✅ FILE HANDLE (IMPORTANT)
+    //  FILE HANDLE (IMPORTANT)
     const photo = req.file ? `/uploads/${req.file.filename}` : null;
 
     connection = await oracledb.getConnection(dbConfig);
@@ -168,7 +167,7 @@ WHEN MATCHED THEN UPDATE SET
   p.state = :state,
   p.address = :address,
   p.bio = :bio,
-  p.photo = NVL(:photo, p.photo), -- 🔥 old image preserve
+  p.photo = NVL(:photo, p.photo), --  old image preserve
   p.updated_at = SYSDATE
 
 WHEN NOT MATCHED THEN INSERT

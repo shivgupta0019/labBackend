@@ -29,15 +29,29 @@ exports.login = async (req, res) => {
 
     const user = rows[0];
 
+    // 🔐 PASSWORD CHECK
     const isMatch = await bcrypt.compare(password, user.PASSWORD);
 
     if (!isMatch) {
       return res.status(400).json({ message: "Wrong password" });
     }
 
-    // 🔥 STEP 1: TRUSTED DEVICE CHECK
+    //  ALREADY VERIFIED → DIRECT LOGIN
+    if (user.IS_VERIFIED === 1) {
+      const token = jwt.sign(
+        { email: user.EMAIL, role: user.ROLE },
+        process.env.JWT_SECRET,
+        { expiresIn: "1h" },
+      );
+
+      return res.json({
+        accessToken: token,
+        otpRequired: false,
+      });
+    }
+
+    // 📱 TRUSTED DEVICE CHECK
     const userAgent = req.headers["user-agent"];
-    const deviceToken = req.cookies.deviceToken;
 
     const deviceCheck = await connection.execute(
       `SELECT * FROM trusted_devices 
@@ -48,15 +62,13 @@ exports.login = async (req, res) => {
       { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
 
-    // ✅ TRUSTED → OTP SKIP
+    //  TRUSTED DEVICE → SKIP OTP
     if (deviceCheck.rows.length > 0) {
-      console.log("hi..1");
       const token = jwt.sign(
         { email: user.EMAIL, role: user.ROLE },
-        "super_secret_key_123",
+        process.env.JWT_SECRET,
         { expiresIn: "1h" },
       );
-      console.log("hi..2");
 
       return res.json({
         accessToken: token,
@@ -64,15 +76,15 @@ exports.login = async (req, res) => {
       });
     }
 
-    // ❌ NOT TRUSTED → OTP SEND
+    //  NOT TRUSTED → SEND OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 5 * 60 * 1000);
 
     await connection.execute(
       `UPDATE users 
-       SET otp = :1, otp_expires = :2 
-       WHERE email = :3`,
-      [otp, expires, email],
+       SET otp = :1, 
+           otp_expires = SYSDATE + (1/1440)  
+       WHERE email = :2`,
+      [otp, email],
       { autoCommit: true },
     );
 
@@ -83,13 +95,13 @@ exports.login = async (req, res) => {
       otpRequired: true,
     });
   } catch (err) {
-    console.log(err);
+    console.log("❌ LOGIN ERROR:", err);
     res.status(500).json({ message: "Server error" });
   } finally {
     if (connection) await connection.close();
   }
 };
-
+//////////////////////////////////////////////
 exports.verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
   const userAgent = req.headers["user-agent"];
@@ -99,27 +111,32 @@ exports.verifyOtp = async (req, res) => {
   try {
     connection = await oracledb.getConnection(dbConfig);
 
+    //  SINGLE SOURCE OF TRUTH (DB CHECK)
     const result = await connection.execute(
-      `SELECT otp, otp_expires, role 
-       FROM users WHERE email = :1`,
-      [email],
+      `SELECT role 
+       FROM users 
+       WHERE email = :1 
+       AND otp = :2 
+       AND otp_expires > SYSDATE`,
+      [email, otp],
       { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
 
+    // ❌ INVALID / EXPIRED
+    if (result.rows.length === 0) {
+      return res.status(400).json({ message: "OTP expired or invalid" });
+    }
+
     const user = result.rows[0];
 
-    if (!user) return res.status(400).json({ message: "User not found" });
-
-    if (user.OTP !== otp)
-      return res.status(400).json({ message: "Invalid OTP" });
-
-    if (new Date() > new Date(user.OTP_EXPIRES))
-      return res.status(400).json({ message: "OTP expired" });
-
-    // ✅ clear OTP
+    // 🔥 CLEAR OTP + VERIFY USER
     await connection.execute(
-      `UPDATE users SET otp = NULL, otp_expires = NULL WHERE email = :1`,
-      [email],
+      `UPDATE users 
+       SET otp = NULL, 
+           otp_expires = NULL,
+           is_verified = 1 
+       WHERE email = :1 AND otp = :2`,
+      [email, otp],
       { autoCommit: true },
     );
 
@@ -164,9 +181,9 @@ exports.resendOtp = async (req, res) => {
   try {
     connection = await oracledb.getConnection(dbConfig);
 
-    // 🔥 new OTP generate
+    //  new OTP generate
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 5 * 60 * 1000);
+    const expires = new Date(Date.now() + 60 * 1000);
 
     // 🔥 DB update (IMPORTANT)
     await connection.execute(
@@ -174,14 +191,13 @@ exports.resendOtp = async (req, res) => {
        SET otp = :1, otp_expires = :2 
        WHERE email = :3`,
       [otp, expires, email],
-      { autoCommit: true }
+      { autoCommit: true },
     );
 
     // 🔥 send mail
     await sendOTP(email, otp);
 
     res.json({ message: "OTP resent successfully" });
-
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server error" });
@@ -267,7 +283,7 @@ exports.resetPassword = async (req, res) => {
 /////////get users///////////
 exports.getUsers = async (req, res) => {
   // 🔐 ADMIN CHECK
-  if (req.user.role !== "admin") {
+  if (!["admin", "super_admin"].includes(req.user.role)) {
     return res.status(403).json({ message: "Access denied" });
   }
 
@@ -306,6 +322,12 @@ exports.updateUserRole = async (req, res) => {
   let connection;
 
   try {
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({
+        message: "Only super admin can change roles",
+      });
+    }
+
     const userId = req.params.id;
     const { role } = req.body;
 
@@ -313,7 +335,7 @@ exports.updateUserRole = async (req, res) => {
 
     // 🔹 target user nikaal
     const result = await connection.execute(
-      "SELECT email FROM users WHERE id = :id",
+      "SELECT email, role FROM users WHERE id = :id",
       [userId],
       { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
@@ -324,7 +346,18 @@ exports.updateUserRole = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 🔥 IMPORTANT: self role change block
+    //  SUPER ADMIN PROTECTION (CORRECT)
+    if (targetUser.ROLE === "super_admin") {
+      return res.status(403).json({
+        message: "Super Admin role cannot be changed",
+      });
+    }
+
+    if (!targetUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    //  IMPORTANT: self role change block
     if (req.user.email === targetUser.EMAIL) {
       return res.status(400).json({
         message: "You can't change your own role",
@@ -351,6 +384,12 @@ exports.updateUserRole = async (req, res) => {
 exports.toggleAdmin = async (req, res) => {
   let connection;
   try {
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({
+        message: "Only super admin allowed",
+      });
+    }
+
     const { id } = req.body;
 
     connection = await oracledb.getConnection(dbConfig);
@@ -365,6 +404,13 @@ exports.toggleAdmin = async (req, res) => {
 
     if (rows.length === 0) {
       return res.status(400).json({ message: "User not found" });
+    }
+
+    //  SUPER ADMIN BLOCK
+    if (rows[0].ROLE === "super_admin") {
+      return res.status(403).json({
+        message: "Super admin cannot be modified",
+      });
     }
 
     const currentRole = rows[0].ROLE;
@@ -394,7 +440,7 @@ exports.toggleAdmin = async (req, res) => {
 
 ////////////////////////////////////
 exports.logout = async (req, res) => {
-  res.clearCookie("deviceToken"); // optional
+  res.clearCookie("deviceToken");
 
   res.json({ message: "Logged out" });
 };

@@ -17,7 +17,7 @@ const sendOTP = async (email, otp) => {
       subject: "Your Login OTP",
       text: `Your OTP is: ${otp}`,
     });
-    console.log("✅ OTP sent");
+    console.log(" OTP sent");
   } catch (err) {
     console.log("❌ MAIL ERROR:", err);
   }

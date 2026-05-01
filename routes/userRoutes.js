@@ -57,7 +57,10 @@ router.get("/users", authMiddleware, getUsers);
 router.put("/users/:id/role", authMiddleware, updateUserRole);
 router.post("/toggle-admin", authMiddleware, toggleAdmin);
 
-router.get("/profile",profileMiddleware,getProfile);
+router.get("/profile", profileMiddleware, (req, res, next) => {
+  res.set("Cache-Control", "no-store"); //  add this
+  next();
+}, getProfile);
 router.put("/profile",profileMiddleware,upload.single("photo"),updateProfile);
 
 router.post("/logout", authMiddleware, logout);
@@ -83,7 +86,7 @@ router.post("/trf", adminTrf);
 router.get("/trf", allTrf);
 router.get("/trf/filled", getFilledTrfs);
 
-// ⚠️ Yeh line PEHLE honi chahiye
+//  Yeh line PEHLE honi chahiye
 router.get("/trf/user/:id", getTrfForUserFill);
 router.patch("/trf/:id/fill", fillTrfValues);
 
